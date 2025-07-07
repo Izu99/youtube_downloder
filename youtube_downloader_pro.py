@@ -230,30 +230,30 @@ class YouTubeDownloaderPro(ctk.CTk):
     def _execute_download(self, url, download_type, resolution, download_path):
         try:
             # Construct the yt-dlp command
-            command = ["yt-dlp", "--get-filename", "-o", os.path.join(download_path, "%(title)s.%(ext)s"), url]
+            # Determine output filename
+            output_template = os.path.join(download_path, "%(title)s.%(ext)s")
+            final_output_path = output_template
+
+            # Check for existing file and rename if necessary
             try:
-                process = subprocess.run(command, capture_output=True, text=True, check=True)
-                filename = process.stdout.strip()
-                if os.path.exists(filename):
-                    # Simple dialog for user confirmation
-                    # In a real-world scenario, you'd want a more robust dialog system
-                    # that doesn't block the main thread like this.
-                    # For this example, we'll use a simple text-based confirmation.
-                    self.update_output(f'File "{os.path.basename(filename)}" already exists. Download again?')
-                    # This is a placeholder for a proper dialog
-                    # In a real customtkinter app, you would create a Toplevel window for this.
-                    # For now, we will proceed with renaming.
-                    base, ext = os.path.splitext(filename)
+                # Use yt-dlp to predict the filename without actually downloading
+                filename_command = ["yt-dlp", "--get-filename", "-o", output_template, url]
+                process = subprocess.run(filename_command, capture_output=True, text=True, check=True)
+                predicted_filename = process.stdout.strip()
+
+                if os.path.exists(predicted_filename):
+                    self.update_output(f'File "{os.path.basename(predicted_filename)}" already exists.')
+                    base, ext = os.path.splitext(predicted_filename)
                     count = 1
                     while os.path.exists(f"{base}_({count}){ext}"):
                         count += 1
-                    new_filename = f"{base}_({count}){ext}"
-                    self.update_output(f"Downloading as \"{os.path.basename(new_filename)}\"")
-                    command.extend(["-o", new_filename])
+                    final_output_path = f"{base}_({count}){ext}"
+                    self.update_output(f"Downloading as \"{os.path.basename(final_output_path)}\"")
 
             except subprocess.CalledProcessError as e:
-                self.update_output(f"Error getting filename: {e.stderr}", is_error=True)
-                return
+                self.update_output(f"Error predicting filename: {e.stderr}", is_error=True)
+                # Proceed with original output_template if prediction fails
+                pass
 
             command = ["yt-dlp"]
 
@@ -266,7 +266,7 @@ class YouTubeDownloaderPro(ctk.CTk):
             elif download_type == "audio":
                 command.extend(["-x", "--audio-format", "mp3"])
 
-            command.extend(["-o", os.path.join(download_path, "%(title)s.%(ext)s"), url])
+            command.extend(["-o", final_output_path, url])
 
             self.update_output(f"Executing command: {' '.join(command)}")
 
