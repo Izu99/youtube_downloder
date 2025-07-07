@@ -8,6 +8,8 @@ import time
 import queue
 from PIL import Image, ImageTk
 import urllib.request
+import io
+import json
 
 class YouTubeDownloaderPro(ctk.CTk):
     def __init__(self):
@@ -133,37 +135,33 @@ class YouTubeDownloaderPro(ctk.CTk):
         if not url:
             return
 
-        self.update_output("Fetching video data...")
+        self.update_output("Fetching video data and resolutions...")
         try:
-            # Get thumbnail and resolutions in one go
-            command = ["yt-dlp", "-F", "--get-thumbnail", url]
+            # Get video info in JSON format
+            command = ["yt-dlp", "--dump-json", url]
             process = subprocess.run(command, capture_output=True, text=True, check=True)
-            output = process.stdout
+            video_info = json.loads(process.stdout)
 
-            thumbnail_url_match = re.search(r"Fetching thumbnail .*\n(https?://.*)", output)
-            if thumbnail_url_match:
-                thumbnail_url = thumbnail_url_match.group(1).strip()
-                self.update_thumbnail(thumbnail_url)
-            
+            # Update thumbnail
+            if video_info.get('thumbnail'):
+                self.update_thumbnail(video_info['thumbnail'])
+
+            # Extract and sort resolutions
             resolutions = set()
-            for line in output.split('\n'):
-                if "video only" in line:
-                    match = re.search(r'(\d+p)', line)
-                    if match:
-                        resolutions.add(match.group(1))
+            for f in video_info.get('formats', []):
+                if f.get('vcodec') != 'none' and f.get('height'):
+                    resolutions.add(f'{f["height"]}p')
             
             sorted_resolutions = sorted(list(resolutions), key=lambda x: int(x[:-1]), reverse=True)
-            if sorted_resolutions:
-                self.resolution_menu.configure(values=sorted_resolutions)
-                self.resolution_var.set(sorted_resolutions[0])
-                self.update_output("Available resolutions updated.")
-            else:
-                self.resolution_menu.configure(values=["best"])
-                self.resolution_var.set("best")
-                self.update_output("Could not find specific resolutions, defaulting to best.")
+            
+            # Add "best" option and update dropdown
+            final_resolutions = ["best"] + sorted_resolutions
+            self.resolution_menu.configure(values=final_resolutions)
+            self.resolution_var.set(final_resolutions[0])
+            self.update_output("Available resolutions updated.")
 
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            self.update_output(f"Error fetching video data: {e}", is_error=True)
+        except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError) as e:
+            self.update_output(f"Error fetching video data or resolutions: {e}", is_error=True)
             self.resolution_menu.configure(values=["best"])
             self.resolution_var.set("best")
 
