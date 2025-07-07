@@ -258,12 +258,11 @@ class YouTubeDownloaderPro(ctk.CTk):
             command = ["yt-dlp"]
 
             if download_type == "video":
-                # Clean resolution string for yt-dlp
-                res_val = resolution.split(" ")[0].replace("(", "").replace("p)", "")
-                if res_val == "best":
+                if resolution == "best":
                     command.extend(["-f", "bestvideo+bestaudio/best"])
                 else:
-                    command.extend(["-f", f"bestvideo[height<={res_val}]+bestaudio/best[height<={res_val}]"])
+                    # Request specific height, or fallback to best if not available
+                    command.extend(["-f", f"bestvideo[height={resolution[:-1]}]+bestaudio/best"])
             elif download_type == "audio":
                 command.extend(["-x", "--audio-format", "mp3"])
 
