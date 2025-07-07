@@ -6,6 +6,8 @@ import os
 import re
 import time
 import queue
+from PIL import Image, ImageTk
+import urllib.request
 
 class YouTubeDownloaderPro(ctk.CTk):
     def __init__(self):
@@ -40,7 +42,11 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.main_content_frame = ctk.CTkFrame(self, corner_radius=15)
         self.main_content_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
         self.main_content_frame.grid_columnconfigure(1, weight=1)
-        self.main_content_frame.grid_rowconfigure(6, weight=1) # Output frame should expand
+        self.main_content_frame.grid_rowconfigure(7, weight=1) # Output frame should expand
+
+        # --- Thumbnail Preview ---
+        self.thumbnail_label = ctk.CTkLabel(self.main_content_frame, text="")
+        self.thumbnail_label.grid(row=0, column=2, rowspan=4, padx=15, pady=10, sticky="nsew")
 
         # --- Input Section ---
         # URL Input
@@ -49,20 +55,22 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.url_entry = ctk.CTkEntry(self.main_content_frame, placeholder_text="Enter YouTube URL here", corner_radius=10)
         self.url_entry.grid(row=0, column=1, padx=15, pady=10, sticky="ew")
 
+        self.url_entry.bind("<FocusOut>", self.on_url_focus_out)
+
         # Download Type
         self.type_label = ctk.CTkLabel(self.main_content_frame, text="📥 Download Type:", font=ctk.CTkFont(weight="bold"))
         self.type_label.grid(row=1, column=0, padx=15, pady=10, sticky="w")
         self.download_type_var = ctk.StringVar(value="video") # Default to video
-        self.video_radio = ctk.CTkRadioButton(self.main_content_frame, text="Video", variable=self.download_type_var, value="video", corner_radius=5)
+        self.video_radio = ctk.CTkRadioButton(self.main_content_frame, text="Video", variable=self.download_type_var, value="video", corner_radius=5, command=self.on_url_focus_out)
         self.video_radio.grid(row=1, column=1, padx=(15, 5), pady=10, sticky="w")
-        self.audio_radio = ctk.CTkRadioButton(self.main_content_frame, text="Audio", variable=self.download_type_var, value="audio", corner_radius=5)
+        self.audio_radio = ctk.CTkRadioButton(self.main_content_frame, text="Audio", variable=self.download_type_var, value="audio", corner_radius=5, command=self.on_url_focus_out)
         self.audio_radio.grid(row=1, column=1, padx=(5, 15), pady=10, sticky="e")
 
         # Resolution (for video)
         self.resolution_label = ctk.CTkLabel(self.main_content_frame, text="📺 Resolution:", font=ctk.CTkFont(weight="bold"))
         self.resolution_label.grid(row=2, column=0, padx=15, pady=10, sticky="w")
-        self.resolution_options = ["best", "4K (2160p)", "2K (1440p)", "1080p (Full HD)", "720p (HD)", "480p", "360p"]
-        self.resolution_var = ctk.StringVar(value="720p (HD)") # Default to 720p
+        self.resolution_options = ["best"]
+        self.resolution_var = ctk.StringVar(value="best") # Default to best
         self.resolution_menu = ctk.CTkOptionMenu(self.main_content_frame, variable=self.resolution_var, values=self.resolution_options, corner_radius=10)
         self.resolution_menu.grid(row=2, column=1, padx=15, pady=10, sticky="ew")
 
@@ -115,6 +123,61 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.status_bar = ctk.CTkLabel(self, text="Version 1.0 | Ready", font=ctk.CTkFont(size=12), anchor="e")
         self.status_bar.grid(row=2, column=0, padx=20, pady=(5, 15), sticky="ew")
 
+    def on_url_focus_out(self, event=None):
+        url = self.url_entry.get()
+        if url and re.match(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%?]{11})', url):
+            self._get_resolutions()
+
+    def _get_resolutions(self):
+        url = self.url_entry.get()
+        if not url:
+            return
+
+        self.update_output("Fetching video data...")
+        try:
+            # Get thumbnail and resolutions in one go
+            command = ["yt-dlp", "-F", "--get-thumbnail", url]
+            process = subprocess.run(command, capture_output=True, text=True, check=True)
+            output = process.stdout
+
+            thumbnail_url_match = re.search(r"Fetching thumbnail .*\n(https?://.*)", output)
+            if thumbnail_url_match:
+                thumbnail_url = thumbnail_url_match.group(1).strip()
+                self.update_thumbnail(thumbnail_url)
+            
+            resolutions = set()
+            for line in output.split('\n'):
+                if "video only" in line:
+                    match = re.search(r'(\d+p)', line)
+                    if match:
+                        resolutions.add(match.group(1))
+            
+            sorted_resolutions = sorted(list(resolutions), key=lambda x: int(x[:-1]), reverse=True)
+            if sorted_resolutions:
+                self.resolution_menu.configure(values=sorted_resolutions)
+                self.resolution_var.set(sorted_resolutions[0])
+                self.update_output("Available resolutions updated.")
+            else:
+                self.resolution_menu.configure(values=["best"])
+                self.resolution_var.set("best")
+                self.update_output("Could not find specific resolutions, defaulting to best.")
+
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            self.update_output(f"Error fetching video data: {e}", is_error=True)
+            self.resolution_menu.configure(values=["best"])
+            self.resolution_var.set("best")
+
+    def update_thumbnail(self, url):
+        try:
+            with urllib.request.urlopen(url) as response:
+                image_data = response.read()
+            image = Image.open(io.BytesIO(image_data))
+            image.thumbnail((320, 180)) # Resize for preview
+            self.thumbnail_image = ImageTk.PhotoImage(image)
+            self.thumbnail_label.configure(image=self.thumbnail_image)
+        except Exception as e:
+            self.update_output(f"Error loading thumbnail: {e}", is_error=True)
+
     def browse_path(self):
         directory = filedialog.askdirectory()
         if directory:
@@ -150,8 +213,8 @@ class YouTubeDownloaderPro(ctk.CTk):
         resolution = self.resolution_var.get()
         download_path = self.path_entry.get()
 
-        if not url:
-            self.update_output("Please enter a YouTube URL.", is_error=True)
+        if not url or not re.match(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%?]{11})', url):
+            self.update_output("Please enter a valid YouTube URL.", is_error=True)
             return
         if not download_path:
             self.update_output("Please select a download path.", is_error=True)
@@ -169,6 +232,31 @@ class YouTubeDownloaderPro(ctk.CTk):
     def _execute_download(self, url, download_type, resolution, download_path):
         try:
             # Construct the yt-dlp command
+            command = ["yt-dlp", "--get-filename", "-o", os.path.join(download_path, "%(title)s.%(ext)s"), url]
+            try:
+                process = subprocess.run(command, capture_output=True, text=True, check=True)
+                filename = process.stdout.strip()
+                if os.path.exists(filename):
+                    # Simple dialog for user confirmation
+                    # In a real-world scenario, you'd want a more robust dialog system
+                    # that doesn't block the main thread like this.
+                    # For this example, we'll use a simple text-based confirmation.
+                    self.update_output(f'File "{os.path.basename(filename)}" already exists. Download again?')
+                    # This is a placeholder for a proper dialog
+                    # In a real customtkinter app, you would create a Toplevel window for this.
+                    # For now, we will proceed with renaming.
+                    base, ext = os.path.splitext(filename)
+                    count = 1
+                    while os.path.exists(f"{base}_({count}){ext}"):
+                        count += 1
+                    new_filename = f"{base}_({count}){ext}"
+                    self.update_output(f"Downloading as \"{os.path.basename(new_filename)}\"")
+                    command.extend(["-o", new_filename])
+
+            except subprocess.CalledProcessError as e:
+                self.update_output(f"Error getting filename: {e.stderr}", is_error=True)
+                return
+
             command = ["yt-dlp"]
 
             if download_type == "video":
