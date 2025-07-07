@@ -143,8 +143,21 @@ class YouTubeDownloaderPro(ctk.CTk):
             video_info = json.loads(process.stdout)
 
             # Update thumbnail
-            if video_info.get('thumbnail'):
-                self.update_thumbnail(video_info['thumbnail'])
+            if video_info.get('thumbnails'):
+                # Prioritize smaller thumbnails for faster loading
+                thumbnail_url = None
+                for thumb in video_info['thumbnails']:
+                    if thumb.get('id') == 'default': # Example: 'default' is usually 120x90
+                        thumbnail_url = thumb['url']
+                        break
+                    elif thumb.get('id') == 'mqdefault': # Example: 'mqdefault' is usually 320x180
+                        thumbnail_url = thumb['url']
+                        break
+                if not thumbnail_url and video_info['thumbnails']:
+                    thumbnail_url = video_info['thumbnails'][0]['url'] # Fallback to first available
+
+                if thumbnail_url:
+                    self.update_thumbnail(thumbnail_url)
 
             # Extract and sort resolutions
             resolutions = set()
