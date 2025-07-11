@@ -18,6 +18,11 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.progress_queue = queue.Queue()
         self._check_queue_for_updates()
 
+        # Instance variables for managing download process
+        self.current_download_process = None
+        self.current_download_file = None
+        self.stop_flag = threading.Event()
+
         # --- Modern App Configuration ---
         self.title("YouTube Downloader Pro")
         self.geometry("800x650") # Slightly taller
@@ -190,9 +195,14 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         self.browse_button.grid(row=3, column=2, padx=20, pady=8)
 
-        # --- Modern Download Button --- (New Row)
+        # --- Download and Stop Buttons --- (New Row)
+        self.button_frame = ctk.CTkFrame(self.main_content_frame, fg_color="transparent")
+        self.button_frame.grid(row=4, column=0, columnspan=3, padx=20, pady=(15, 5), sticky="ew")
+        self.button_frame.grid_columnconfigure(0, weight=1)
+        self.button_frame.grid_columnconfigure(1, weight=1)
+
         self.download_button = ctk.CTkButton(
-            self.main_content_frame, 
+            self.button_frame, 
             text=" Download", 
             command=self.start_download, 
             font=ctk.CTkFont(size=16, weight="bold"),
@@ -202,22 +212,35 @@ class YouTubeDownloaderPro(ctk.CTk):
             hover_color=self.colors["accent_hover"],
             text_color=self.colors["text_primary"]
         )
-        self.download_button.grid(row=4, column=0, columnspan=3, padx=20, pady=(15, 5), sticky="ew")
+        self.download_button.grid(row=0, column=0, padx=(0, 10), sticky="ew")
+
+        self.stop_button = ctk.CTkButton(
+            self.button_frame, 
+            text=" Stop", 
+            command=self.stop_download, 
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=45,
+            corner_radius=12,
+            fg_color=self.colors["error"],
+            hover_color="#CC2929", # Darker red for hover
+            text_color=self.colors["text_primary"],
+            state="disabled" # Disabled by default
+        )
+        self.stop_button.grid(row=0, column=1, padx=(10, 0), sticky="ew")
 
         # --- Modern Progress Section --- (New Row)
-        self.progress_frame = ctk.CTkFrame(
+        self.progress_section_frame = ctk.CTkFrame(
             self.main_content_frame,
             fg_color=self.colors["bg_tertiary"],
             corner_radius=15
         )
-        self.progress_frame.grid(row=5, column=0, columnspan=3, padx=20, pady=(5, 10), sticky="ew")
-        self.progress_frame.grid_columnconfigure(0, weight=1) # Progress bar takes most space
-        self.progress_frame.grid_columnconfigure(1, weight=0) # Percentage label
-        self.progress_frame.grid_columnconfigure(2, weight=0) # Speed label
-        self.progress_frame.grid_columnconfigure(3, weight=0) # ETA label
+        self.progress_section_frame.grid(row=5, column=0, columnspan=3, padx=20, pady=(5, 10), sticky="ew")
+        self.progress_section_frame.grid_columnconfigure(0, weight=1) # Progress bar takes most space
+        self.progress_section_frame.grid_columnconfigure(1, weight=0) # Percentage label
 
+        # Progress Bar and Percentage
         self.progress_bar = ctk.CTkProgressBar(
-            self.progress_frame,
+            self.progress_section_frame,
             height=12,
             corner_radius=6,
             fg_color=self.colors["bg_primary"],
@@ -229,7 +252,7 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.progress_bar.set(0)
 
         self.progress_label = ctk.CTkLabel(
-            self.progress_frame, 
+            self.progress_section_frame, 
             text="0%",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color=self.colors["text_primary"],
@@ -237,30 +260,46 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         self.progress_label.grid(row=0, column=1, padx=(5, 15), pady=10)
 
+        # Speed and ETA Display
+        self.speed_eta_frame = ctk.CTkFrame(
+            self.progress_section_frame,
+            fg_color="transparent" # Transparent background within the section frame
+        )
+        self.speed_eta_frame.grid(row=1, column=0, columnspan=2, padx=0, pady=(0, 10), sticky="ew")
+        self.speed_eta_frame.grid_columnconfigure(1, weight=1)
+
         self.speed_icon_label = ctk.CTkLabel(
-            self.progress_frame,
+            self.speed_eta_frame,
             text="⚡",
             font=ctk.CTkFont(size=20),
             text_color=self.colors["neon_glow"],
             width=30
         )
-        self.speed_icon_label.grid(row=1, column=0, padx=(15, 5), pady=(0, 10), sticky="w")
+        self.speed_icon_label.grid(row=0, column=0, padx=(15, 5), pady=0, sticky="w")
 
         self.speed_label = ctk.CTkLabel(
-            self.progress_frame,
+            self.speed_eta_frame,
             text="Download Speed:",
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color=self.colors["text_secondary"]
         )
-        self.speed_label.grid(row=1, column=1, padx=5, pady=(0, 10), sticky="w")
+        self.speed_label.grid(row=0, column=1, padx=5, pady=0, sticky="w")
 
         self.speed_value_label = ctk.CTkLabel(
-            self.progress_frame,
+            self.speed_eta_frame,
             text="0.00 MB/s",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color=self.colors["neon_glow"]
         )
-        self.speed_value_label.grid(row=1, column=2, padx=(5, 15), pady=(0, 10), sticky="e")
+        self.speed_value_label.grid(row=0, column=2, padx=(5, 15), pady=0, sticky="e")
+
+        self.eta_label = ctk.CTkLabel(
+            self.speed_eta_frame,
+            text="ETA: N/A",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color=self.colors["text_secondary"]
+        )
+        self.eta_label.grid(row=1, column=0, columnspan=3, padx=(15, 15), pady=(0, 0), sticky="ew")
 
         # --- Modern Output Console --- (New Row)
         self.output_text = ctk.CTkTextbox(
@@ -308,6 +347,7 @@ class YouTubeDownloaderPro(ctk.CTk):
         
         # Update speed display with neon glow effect
         self.speed_value_label.configure(text=speed)
+        self.eta_label.configure(text=f"ETA: {eta}")
         
         # Update progress bar color based on percentage
         if percentage < 30:
@@ -333,16 +373,41 @@ class YouTubeDownloaderPro(ctk.CTk):
             self.update_output("Please enter a YouTube URL.", is_error=True)
             return
         
-        # Modern button state changes
+        # Disable download button, enable stop button
         self.download_button.configure(
             state="disabled", 
             text=" Downloading...",
             fg_color=self.colors["warning"]
         )
+        self.stop_button.configure(state="normal")
         self.update_progress(0)
+        self.stop_flag.clear() # Clear stop flag for new download
         
         download_thread = threading.Thread(target=self._execute_download, daemon=True)
         download_thread.start()
+
+    def stop_download(self):
+        self.stop_flag.set() # Set the stop flag
+        if self.current_download_process:
+            self.current_download_process.terminate() # Terminate the yt-dlp process
+            self.update_output("Download process terminated.")
+        
+        if self.current_download_file and os.path.exists(self.current_download_file):
+            try:
+                os.remove(self.current_download_file)
+                self.update_output(f"Partially downloaded file deleted: {os.path.basename(self.current_download_file)}")
+            except Exception as e:
+                self.update_output(f"Error deleting partial file: {e}", is_error=True)
+        
+        # Reset UI elements
+        self.download_button.configure(
+            state="normal", 
+            text=" Download",
+            fg_color=self.colors["accent"]
+        )
+        self.stop_button.configure(state="disabled")
+        self.progress_queue.put({'percentage': 0, 'speed': "0.00 MB/s", 'eta': "N/A"})
+        self.update_output("Download stopped and cleaned up.")
 
     def _execute_download(self):
         url = self.url_entry.get()
@@ -368,6 +433,8 @@ class YouTubeDownloaderPro(ctk.CTk):
                 self.update_output(f'Will download as "{os.path.basename(final_output_path)}"')
             else:
                 final_output_path = predicted_filename
+            
+            self.current_download_file = final_output_path # Store for potential deletion
 
         except subprocess.CalledProcessError as e:
             self.update_output(f"Could not determine filename. Download aborted. Error: {e}", is_error=True)
@@ -376,6 +443,7 @@ class YouTubeDownloaderPro(ctk.CTk):
                 text=" Download",
                 fg_color=self.colors["accent"]
             )
+            self.stop_button.configure(state="disabled")
             return
 
         # --- Build the final download command ---
@@ -383,10 +451,10 @@ class YouTubeDownloaderPro(ctk.CTk):
         
         if download_type == "video":
             if resolution == "best":
-                format_string = "bestvideo+bestaudio/best"
+                format_string = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
             else:
                 res_height = resolution[:-1]
-                format_string = f"bestvideo[height<={res_height}]+bestaudio/bestvideo+bestaudio"
+                format_string = f"bestvideo[height<={res_height}][ext=mp4]+bestaudio[ext=m4a]/best[height<={res_height}][ext=mp4]/best[height<={res_height}]"
             command.extend(["-f", format_string])
         elif download_type == "audio":
             command.extend(["-x", "--audio-format", "mp3"])
@@ -395,42 +463,55 @@ class YouTubeDownloaderPro(ctk.CTk):
 
         self.update_output(f"Starting download: {os.path.basename(final_output_path)}")
         
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace')
+        self.current_download_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace')
 
-        for line in process.stdout:
+        for line in self.current_download_process.stdout:
+            if self.stop_flag.is_set(): # Check stop flag during download
+                break
+
             # Also print to console for debugging, and update the GUI
             print(line.strip())
             self.update_output(line.strip())
             
-            # Parse progress percentage
-            progress_match = re.search(r"\[download\]\s+(\d+\.)?%", line)
+            # Initialize with default values
+            percentage = 0.0
+            speed = "N/A"
+            eta = "N/A"
+
+            # Parse progress percentage, speed, and ETA
+            progress_match = re.search(r"(\d+\.?\d*)%\s+of\s+.*?\s+at\s+([\d\.]+(?:K|M|G)?i?B/s)(?:\s+ETA\s+(.*))?", line)
             if progress_match:
-                percentage = float(progress_match.group(1))
-                
-                # Parse download speed
-                speed_match = re.search(r"at\s+(\d+\.)?(?:K|M|G)?i?B/s)", line)
-                speed = "0.00 MB/s"
-                if speed_match:
-                    speed = speed_match.group(1)
-                    # Ensure consistent formatting
+                try:
+                    percentage = float(progress_match.group(1))
+                    speed = progress_match.group(2)
+                    eta = progress_match.group(3) if progress_match.group(3) else "N/A"
+                    
+                    # Ensure consistent speed formatting
                     if "KiB/s" in speed:
                         speed = speed.replace("KiB/s", " KB/s")
                     elif "MiB/s" in speed:
                         speed = speed.replace("MiB/s", " MB/s")
                     elif "GiB/s" in speed:
                         speed = speed.replace("GiB/s", " GB/s")
-                    elif "KB/s" not in speed and "MB/s" not in speed and "GB/s" not in speed:
+                    elif "B/s" not in speed and "KB/s" not in speed and "MB/s" not in speed and "GB/s" not in speed:
                         speed = speed + " B/s"
+                except (ValueError, IndexError) as e:
+                    # Log parsing errors but don't crash
+                    print(f"Error parsing progress line: {line.strip()} - {e}")
+                    percentage = 0.0 # Reset to default on error
+                    speed = "N/A"
+                    eta = "N/A"
                 
-                self.progress_queue.put({'percentage': percentage, 'speed': speed})
+                self.progress_queue.put({'percentage': percentage, 'speed': speed, 'eta': eta})
 
-        process.wait()
+        self.current_download_process.wait()
 
-        if process.returncode == 0:
-            self.update_output("Download completed successfully!")
-            self.progress_queue.put({'percentage': 100, 'speed': "0.00 MB/s"})
-        else:
-            self.update_output("Download failed.", is_error=True)
+        if not self.stop_flag.is_set(): # Only show success/failure if not stopped by user
+            if self.current_download_process.returncode == 0:
+                self.update_output("Download completed successfully!")
+                self.progress_queue.put({'percentage': 100, 'speed': "0.00 MB/s", 'eta': "00:00"})
+            else:
+                self.update_output("Download failed.", is_error=True)
             
         # Reset button to original state
         self.download_button.configure(
@@ -438,9 +519,14 @@ class YouTubeDownloaderPro(ctk.CTk):
             text=" Download",
             fg_color=self.colors["accent"]
         )
+        self.stop_button.configure(state="disabled")
+        
         # Reset progress bar and speed for the next download
         time.sleep(1) # Give a moment before resetting
-        self.progress_queue.put({'percentage': 0, 'speed': "0.00 MB/s"})
+        self.progress_queue.put({'percentage': 0, 'speed': "0.00 MB/s", 'eta': "N/A"})
+        
+        self.current_download_process = None
+        self.current_download_file = None
 
 if __name__ == "__main__":
     app = YouTubeDownloaderPro()
