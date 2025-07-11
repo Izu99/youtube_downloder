@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0F0F23;
+            color: white;
+        }
+        
+        .neon-glow {
+            text-shadow: 0 0 5px #00FFFF, 0 0 10px #00FFFF;
+        }
+        
+        .progress-track {
+            background: linear-gradient(90deg, rgba(0,217,255,0.2) 0%, rgba(0,255,212,0.2) 100%);
+        }
+        
+        .progress-thumb {
+            background: linear-gradient(90deg, #00D9FF 0%, #00FFD4 100%);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+        
+        .speed-indicator {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+        }
+        
+        .console-text {
+            font-family: 'Consolas', monospace;
+        }
+        
+        .success-text {
+            color: #00FFD4;
+        }
+        
+        .error-text {
+            color: #FF3B30;
+        }
+        
+        .info-text {
+            color: #B8B8D1;
+        }
+        
+        .glow-hover:hover {
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="bg-[#1A1A2E] rounded-t-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <i class="fab fa-youtube text-3xl text-red-500 mr-3"></i>
+                <h1 class="text-2xl font-bold text-white">YouTube Downloader Pro</h1>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="bg-[#1A1A2E] rounded-b-xl p-6 shadow-lg border border-[#16213E]">
+            <!-- URL Input -->
+            <div class="mb-6">
+                <label for="url" class="block text-sm font-medium text-white mb-2">
+                    <i class="fas fa-link mr-2 text-[#00D9FF]"></i> YouTube URL
+                </label>
+                <input 
+                    type="text" 
+                    id="url" 
+                    placeholder="Paste your YouTube URL here..." 
+                    class="w-full px-4 py-3 rounded-lg bg-[#0F0F23] border-2 border-[#16213E] text-white focus:outline-none focus:border-[#00D9FF] transition-colors"
+                >
+            </div>
+            
+            <!-- Download Type -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-white mb-3">
+                    <i class="fas fa-download mr-2 text-[#00D9FF]"></i> Download Type
+                </label>
+                <div class="flex flex-wrap gap-4">
+                    <div class="flex items-center">
+                        <input type="radio" id="video" name="downloadType" value="video" checked class="h-5 w-5 text-[#00D9FF] focus:ring-[#00D9FF] border-[#16213E]">
+                        <label for="video" class="ml-2 block text-sm font-medium text-white">Video</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="audio" name="downloadType" value="audio" class="h-5 w-5 text-[#00D9FF] focus:ring-[#00D9FF] border-[#16213E]">
+                        <label for="audio" class="ml-2 block text-sm font-medium text-white">Audio (MP3)</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resolution -->
+            <div class="mb-6">
+                <label for="resolution" class="block text-sm font-medium text-white mb-2">
+                    <i class="fas fa-cog mr-2 text-[#00D9FF]"></i> Resolution
+                </label>
+                <select 
+                    id="resolution" 
+                    class="w-full px-4 py-3 rounded-lg bg-[#16213E] border border-[#16213E] text-white focus:outline-none focus:border-[#00D9FF] transition-colors"
+                >
+                    <option value="best">Best Quality</option>
+                    <option value="720p" selected>720p HD</option>
+                    <option value="360p">360p</option>
+                    <option value="144p">144p</option>
+                </select>
+            </div>
+            
+            <!-- Download Path -->
+            <div class="mb-6">
+                <label for="path" class="block text-sm font-medium text-white mb-2">
+                    <i class="fas fa-folder mr-2 text-[#00D9FF]"></i> Download Path
+                </label>
+                <div class="flex gap-3">
+                    <input 
+                        type="text" 
+                        id="path" 
+                        placeholder="Select download directory" 
+                        value="/home/user/Downloads"
+                        class="flex-1 px-4 py-3 rounded-lg bg-[#0F0F23] border-2 border-[#16213E] text-white focus:outline-none focus:border-[#00D9FF] transition-colors"
+                    >
+                    <button id="browseBtn" class="px-4 py-3 rounded-lg bg-[#16213E] text-white font-medium hover:bg-[#00D9FF] transition-colors glow-hover">
+                        <i class="fas fa-folder-open mr-2"></i> Browse
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Download Button -->
+            <button id="downloadBtn" class="w-full py-3 px-6 mb-6 rounded-xl bg-gradient-to-r from-[#00D9FF] to-[#00FFD4] text-white font-bold text-lg hover:from-[#00B8E6] hover:to-[#00E6C3] transition-all transform hover:scale-[1.01] shadow-lg glow-hover">
+                <i class="fas fa-cloud-download-alt mr-2"></i> Download
+            </button>
+            
+            <!-- Progress Section - Modern Combined Design -->
+            <div class="mb-6 bg-[#16213E] rounded-xl p-4 border border-[#16213E]">
+                <!-- Progress Bar -->
+                <div class="mb-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-white">Download Progress</span>
+                        <span id="progressPercent" class="text-sm font-bold text-[#00FFD4]">0%</span>
+                    </div>
+                    <div class="progress-track w-full h-3 rounded-full overflow-hidden">
+                        <div id="progressBar" class="progress-thumb h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <!-- Speed Indicator -->
+                <div class="speed-indicator rounded-lg p-3 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-bolt text-xl text-[#00FFFF] neon-glow mr-3"></i>
+                        <div>
+                            <div class="text-xs text-[#B8B8D1]">Download Speed</div>
+                            <div id="speedValue" class="text-lg font-bold text-[#00FFFF] neon-glow">0.00 MB/s</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-[#B8B8D1]">Estimated Time</div>
+                        <div id="etaValue" class="text-sm font-medium text-white">Calculating...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Output Console -->
+            <div class="bg-[#0F0F23] rounded-xl p-4 border-2 border-[#16213E] h-64 overflow-y-auto">
+                <div id="outputConsole" class="console-text text-sm h-full overflow-y-auto">
+                    <div class="info-text">[<span class="text-white">00:00:00</span>] ℹ️ Welcome to YouTube Downloader Pro - Modern Edition!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate download functionality
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            const url = document.getElementById('url').value;
+            if (!url) {
+                updateOutput("Please enter a YouTube URL.", "error");
+                return;
+            }
+            
+            // Disable button and change text
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Downloading...';
+            downloadBtn.classList.remove('from-[#00D9FF]', 'to-[#00FFD4]');
+            downloadBtn.classList.add('from-[#FFB800]', 'to-[#FFB800]');
+            downloadBtn.disabled = true;
+            
+            // Reset progress
+            updateProgress(0, "0.00 MB/s");
+            
+            // Get download options
+            const downloadType = document.querySelector('input[name="downloadType"]:checked').value;
+            const resolution = document.getElementById('resolution').value;
+            const path = document.getElementById('path').value;
+            
+            // Simulate download progress
+            updateOutput(`Starting download: ${downloadType === 'video' ? 'Video' : 'Audio'} at ${resolution} resolution`);
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 5;
+                if (progress > 100) progress = 100;
+                
+                // Generate random speed between 1-10 MB/s
+                const speed = (1 + Math.random() * 9).toFixed(2) + " MB/s";
+                
+                updateProgress(progress, speed);
+                
+                if (progress === 100) {
+                    clearInterval(interval);
+                    updateOutput("Download completed successfully!", "success");
+                    
+                    // Reset button
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = '<i class="fas fa-cloud-download-alt mr-2"></i> Download';
+                        downloadBtn.classList.add('from-[#00D9FF]', 'to-[#00FFD4]');
+                        downloadBtn.classList.remove('from-[#FFB800]', 'to-[#FFB800]');
+                        downloadBtn.disabled = false;
+                        
+                        // Reset progress after a delay
+                        setTimeout(() => {
+                            updateProgress(0, "0.00 MB/s");
+                        }, 1000);
+                    }, 1000);
+                }
+            }, 300);
+        });
+        
+        // Browse button functionality
+        document.getElementById('browseBtn').addEventListener('click', function() {
+            // In a real app, this would open a directory dialog
+            updateOutput("Browse directory dialog would open here", "info");
+        });
+        
+        // Update progress bar and speed
+        function updateProgress(percentage, speed) {
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const speedValue = document.getElementById('speedValue');
+            
+            progressBar.style.width = percentage + '%';
+            progressPercent.textContent = Math.round(percentage) + '%';
+            speedValue.textContent = speed;
+            
+            // Update ETA based on speed (simplified)
+            if (percentage > 0 && percentage < 100) {
+                const remaining = 100 - percentage;
+                const speedNum = parseFloat(speed);
+                const etaSeconds = Math.round((remaining * 5) / speedNum); // Simplified calculation
+                const etaMinutes = Math.floor(etaSeconds / 60);
+                const etaSecondsRemainder = etaSeconds % 60;
+                
+                document.getElementById('etaValue').textContent = 
+                    `${etaMinutes > 0 ? etaMinutes + 'm ' : ''}${etaSecondsRemainder}s remaining`;
+            } else if (percentage === 100) {
+                document.getElementById('etaValue').textContent = 'Completed!';
+            } else {
+                document.getElementById('etaValue').textContent = 'Calculating...';
+            }
+            
+            // Change progress bar color based on percentage
+            if (percentage < 30) {
+                progressBar.style.background = 'linear-gradient(90deg, #FFB800 0%, #FFD700 100%)';
+            } else if (percentage < 70) {
+                progressBar.style.background = 'linear-gradient(90deg, #00D9FF 0%, #00B8E6 100%)';
+            } else {
+                progressBar.style.background = 'linear-gradient(90deg, #00D9FF 0%, #00FFD4 100%)';
+            }
+        }
+        
+        // Update output console
+        function updateOutput(message, type = "info") {
+            const console = document.getElementById('outputConsole');
+            const now = new Date();
+            const timestamp = now.toTimeString().substring(0, 8);
+            
+            let prefix, textClass;
+            switch(type) {
+                case "error":
+                    prefix = "❌ ERROR: ";
+                    textClass = "error-text";
+                    break;
+                case "success":
+                    prefix = "✅ SUCCESS: ";
+                    textClass = "success-text";
+                    break;
+                default:
+                    prefix = "ℹ️ INFO: ";
+                    textClass = "info-text";
+            }
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `${textClass} mb-1`;
+            messageElement.innerHTML = `[<span class="text-white">${timestamp}</span>] ${prefix}${message}`;
+            
+            console.appendChild(messageElement);
+            console.scrollTop = console.scrollHeight;
+        }
+    </script>
+</body>
+</html>
