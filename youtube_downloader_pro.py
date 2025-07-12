@@ -25,7 +25,7 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.title("🎬 YouTube Downloader Pro")
         self.geometry("1000x700")
         self.minsize(1000, 700)
-        self.resizable(False, False)  # Fixed size for better layout control
+        self.resizable(False, False)
         ctk.set_appearance_mode("dark")
 
         self.colors = {
@@ -42,21 +42,27 @@ class YouTubeDownloaderPro(ctk.CTk):
             "neon_glow": "#00FFFF",
             "console_bg": "#0F0F23",
             "border_color": "#16213E",
-            "download_active": "#FF6B35",
-            "download_normal": "#00D9FF",
-            "stop_normal": "#FF3B30",
-            "stop_hover": "#CC2929"
+            "download_active": "#00A8CC",
+            "download_normal": "#00BFFF",
+            "stop_normal": "#2D60C3",
+            "stop_hover": "#4A7AD4",
+            "console_info": "#FFFFFF",
+            "console_success": "#00FF7F",
+            "console_error": "#FF4444",
+            "console_warning": "#FFD700",
+            "console_progress": "#00BFFF",
+            "console_timestamp": "#9370DB",
+            "console_icon": "#FFB6C1",
+            "console_highlight": "#FF6347"
         }
 
         self.configure(fg_color=self.colors["bg_primary"])
         self.setup_ui()
 
     def setup_ui(self):
-        # Main container
         main_frame = ctk.CTkFrame(self, fg_color="transparent")
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Header
         header_frame = ctk.CTkFrame(main_frame, corner_radius=15, fg_color=self.colors["bg_secondary"], height=60)
         header_frame.pack(fill="x", pady=(0, 10))
         header_frame.pack_propagate(False)
@@ -69,17 +75,14 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         title_label.pack(pady=15)
 
-        # Content area - using grid for better control
         content_frame = ctk.CTkFrame(main_frame, corner_radius=15, fg_color=self.colors["bg_secondary"])
         content_frame.pack(fill="both", expand=True)
         content_frame.pack_propagate(False)
 
-        # Configure grid weights
         content_frame.grid_columnconfigure(0, weight=1)
         content_frame.grid_columnconfigure(1, weight=1)
         content_frame.grid_rowconfigure(4, weight=1)
 
-        # URL Input (spans 2 columns)
         url_label = ctk.CTkLabel(content_frame, text="🔗 YouTube URL:", font=ctk.CTkFont(size=14, weight="bold"))
         url_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 5), sticky="w")
 
@@ -95,11 +98,9 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         self.url_entry.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 15), sticky="ew")
 
-        # Left column - Settings
         settings_frame = ctk.CTkFrame(content_frame, fg_color=self.colors["bg_tertiary"], corner_radius=12)
         settings_frame.grid(row=2, column=0, padx=(20, 10), pady=(0, 15), sticky="nsew")
 
-        # Download Type
         type_label = ctk.CTkLabel(settings_frame, text="📥 Download Type:", font=ctk.CTkFont(size=13, weight="bold"))
         type_label.pack(padx=15, pady=(15, 8), anchor="w")
 
@@ -121,7 +122,6 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         audio_radio.pack(side="left")
 
-        # Resolution
         resolution_label = ctk.CTkLabel(settings_frame, text="⚙️ Resolution:", font=ctk.CTkFont(size=13, weight="bold"))
         resolution_label.pack(padx=15, pady=(10, 8), anchor="w")
 
@@ -130,11 +130,13 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.resolution_menu = ctk.CTkOptionMenu(
             settings_frame, variable=self.resolution_var, values=self.resolution_options,
             height=32, corner_radius=8, fg_color=self.colors["bg_primary"],
-            button_color=self.colors["accent"], font=ctk.CTkFont(size=12)
+            button_color=self.colors["accent"], font=ctk.CTkFont(size=12),
+            dropdown_fg_color=self.colors["bg_tertiary"],
+            dropdown_hover_color=self.colors["accent_hover"],
+            dropdown_text_color=self.colors["text_primary"]
         )
         self.resolution_menu.pack(padx=15, pady=(0, 10), fill="x")
 
-        # Download Path
         path_label = ctk.CTkLabel(settings_frame, text="📁 Download Path:", font=ctk.CTkFont(size=13, weight="bold"))
         path_label.pack(padx=15, pady=(10, 8), anchor="w")
 
@@ -156,11 +158,9 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         browse_button.pack(side="right")
 
-        # Right column - Progress and Controls
         progress_frame = ctk.CTkFrame(content_frame, fg_color=self.colors["bg_tertiary"], corner_radius=12)
         progress_frame.grid(row=2, column=1, padx=(10, 20), pady=(0, 15), sticky="nsew")
 
-        # Download Controls
         controls_label = ctk.CTkLabel(progress_frame, text="🎮 Controls:", font=ctk.CTkFont(size=13, weight="bold"))
         controls_label.pack(padx=15, pady=(15, 8), anchor="w")
 
@@ -181,11 +181,9 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         self.stop_button.pack(side="right")
 
-        # Progress Section
         progress_label = ctk.CTkLabel(progress_frame, text="📊 Progress:", font=ctk.CTkFont(size=13, weight="bold"))
         progress_label.pack(padx=15, pady=(15, 8), anchor="w")
 
-        # Progress bar
         progress_bar_frame = ctk.CTkFrame(progress_frame, fg_color="transparent")
         progress_bar_frame.pack(padx=15, pady=(0, 10), fill="x")
 
@@ -202,7 +200,6 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         self.progress_label.pack(side="right")
 
-        # Speed info
         speed_frame = ctk.CTkFrame(progress_frame, fg_color=self.colors["bg_primary"], corner_radius=8)
         speed_frame.pack(padx=15, pady=(0, 15), fill="x")
 
@@ -221,23 +218,57 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         self.eta_label.pack(side="right")
 
-        # Console Output (spans 2 columns)
-        console_label = ctk.CTkLabel(content_frame, text="🖥️ Console Output:", font=ctk.CTkFont(size=13, weight="bold"))
-        console_label.grid(row=3, column=0, columnspan=2, padx=20, pady=(15, 8), sticky="w")
+        console_header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        console_header_frame.grid(row=3, column=0, columnspan=2, padx=20, pady=(15, 5), sticky="ew")
+
+        console_label = ctk.CTkLabel(
+            console_header_frame, 
+            text="🖥️ Console Output:", 
+            font=ctk.CTkFont(size=13, weight="bold")
+        )
+        console_label.pack(side="left")
+
+        clear_button = ctk.CTkButton(
+            console_header_frame, text="🗑️ Clear", command=self.clear_console,
+            font=ctk.CTkFont(size=11), height=25, width=60, corner_radius=6,
+            fg_color=self.colors["bg_primary"], hover_color=self.colors["accent"]
+        )
+        clear_button.pack(side="right")
+
+        console_frame = ctk.CTkFrame(content_frame, fg_color=self.colors["console_bg"], corner_radius=10)
+        console_frame.grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 20), sticky="nsew")
+        console_frame.grid_propagate(False)
 
         self.output_text = ctk.CTkTextbox(
-            content_frame, wrap="word", corner_radius=10, fg_color=self.colors["console_bg"],
-            border_width=1, border_color=self.colors["border_color"],
-            font=ctk.CTkFont(size=11, family="Consolas"), text_color=self.colors["text_primary"]
+            console_frame, wrap="word", corner_radius=8, fg_color=self.colors["console_bg"],
+            border_width=2, border_color=self.colors["border_color"],
+            font=ctk.CTkFont(size=11, family="Consolas"), text_color=self.colors["console_info"]
         )
-        self.output_text.grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 20), sticky="nsew")
+        self.output_text.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # Initialize
-        self.update_output("🎉 Welcome to YouTube Downloader Pro - Modern Edition!")
+        self._configure_text_tags()
+
+        self.update_output("🎉 Welcome to YouTube Downloader Pro - Enhanced Edition!", msg_type="info")
         if self.YTDLP_PATH:
-            self.update_output(f"✅ yt-dlp found at: {self.YTDLP_PATH}")
+            self.update_output(f"✅ yt-dlp found at: {self.YTDLP_PATH}", msg_type="success")
         else:
             self.update_output("❌ yt-dlp not found! Please install it.", msg_type="error")
+
+    def _configure_text_tags(self):
+        self.output_text.tag_config("timestamp", foreground=self.colors["console_timestamp"])
+        self.output_text.tag_config("icon", foreground=self.colors["console_icon"])
+        self.output_text.tag_config("info", foreground=self.colors["console_info"])
+        self.output_text.tag_config("success", foreground=self.colors["console_success"])
+        self.output_text.tag_config("error", foreground=self.colors["console_error"])
+        self.output_text.tag_config("warning", foreground=self.colors["console_warning"])
+        self.output_text.tag_config("progress", foreground=self.colors["console_progress"])
+        self.output_text.tag_config("highlight", foreground=self.colors["console_highlight"])
+
+    def clear_console(self):
+        self.output_text.configure(state="normal")
+        self.output_text.delete("1.0", "end")
+        self.output_text.configure(state="disabled")
+        self.update_output("🧹 Console cleared", msg_type="info")
 
     def _find_ytdlp(self):
         ytdlp_path = shutil.which("yt-dlp")
@@ -267,40 +298,47 @@ class YouTubeDownloaderPro(ctk.CTk):
     def update_output(self, message, msg_type="info"):
         self.output_text.configure(state="normal")
         
-        # Color coding for different message types
-        color_map = {
-            "info": self.colors["text_primary"],
-            "success": self.colors["success"],
-            "error": self.colors["error"],
-            "warning": self.colors["warning"],
-            "progress": self.colors["neon_glow"]
+        style_config = {
+            "info": {"icon": "ℹ️", "color": "info"},
+            "success": {"icon": "✅", "color": "success"},
+            "error": {"icon": "❌", "color": "error"},
+            "warning": {"icon": "⚠️", "color": "warning"},
+            "progress": {"icon": "📊", "color": "progress"},
+            "highlight": {"icon": "🔥", "color": "highlight"}
         }
         
-        # Icon mapping
-        icon_map = {
-            "info": "ℹ️",
-            "success": "✅",
-            "error": "❌",
-            "warning": "⚠️",
-            "progress": "📊"
-        }
-        
-        # Auto-detect message type if not specified
         if msg_type == "info":
-            if any(word in message.lower() for word in ["completed", "success", "finished"]):
+            message_lower = message.lower()
+            if any(word in message_lower for word in ["completed", "success", "finished", "done"]):
                 msg_type = "success"
-            elif any(word in message.lower() for word in ["error", "failed", "not found"]):
+            elif any(word in message_lower for word in ["error", "failed", "not found", "cannot", "unable"]):
                 msg_type = "error"
-            elif any(word in message.lower() for word in ["warning", "already downloaded"]):
+            elif any(word in message_lower for word in ["warning", "already downloaded", "skip"]):
                 msg_type = "warning"
-            elif any(word in message.lower() for word in ["download]", "downloading", "%"]):
+            elif any(word in message_lower for word in ["download]", "downloading", "%", "progress"]):
                 msg_type = "progress"
+            elif any(word in message_lower for word in ["analyzing", "starting", "found"]):
+                msg_type = "highlight"
+        
+        config = style_config.get(msg_type, style_config["info"])
         
         timestamp = time.strftime('%H:%M:%S')
-        icon = icon_map.get(msg_type, "ℹ️")
-        formatted_message = f"[{timestamp}] {icon} {message}\n"
         
-        self.output_text.insert("end", formatted_message)
+        timestamp_start = self.output_text.index("end-1c")
+        self.output_text.insert("end", f"[{timestamp}] ")
+        timestamp_end = self.output_text.index("end-1c")
+        self.output_text.tag_add("timestamp", timestamp_start, timestamp_end)
+        
+        icon_start = self.output_text.index("end-1c")
+        self.output_text.insert("end", f"{config['icon']} ")
+        icon_end = self.output_text.index("end-1c")
+        self.output_text.tag_add("icon", icon_start, icon_end)
+        
+        message_start = self.output_text.index("end-1c")
+        self.output_text.insert("end", f"{message}\n")
+        message_end = self.output_text.index("end-1c")
+        self.output_text.tag_add(config["color"], message_start, message_end)
+        
         self.output_text.see("end")
         self.output_text.configure(state="disabled")
 
@@ -310,7 +348,6 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.speed_value.configure(text=f"⚡ {speed}")
         self.eta_label.configure(text=f"ETA: {eta}")
         
-        # Dynamic progress bar color
         if percentage < 30:
             self.progress_bar.configure(progress_color=self.colors["warning"])
         elif percentage < 70:
@@ -337,7 +374,6 @@ class YouTubeDownloaderPro(ctk.CTk):
             process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8')
 
             if process.returncode != 0:
-                # Handle case where it's a single video
                 command = [self.YTDLP_PATH, "--dump-json", url]
                 process = subprocess.run(command, capture_output=True, text=True, check=True, encoding='utf-8')
                 info = json.loads(process.stdout)
@@ -368,7 +404,6 @@ class YouTubeDownloaderPro(ctk.CTk):
             self.update_output("Please enter a YouTube URL.", msg_type="error")
             return
 
-        # Update UI for download state
         self.download_button.configure(
             state="disabled",
             text="⏳ Downloading...",
@@ -378,7 +413,7 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.update_progress(0)
         self.stop_flag.clear()
 
-        self.update_output("🔍 Analyzing URL...")
+        self.update_output("🔍 Analyzing URL...", msg_type="highlight")
         analysis_thread = threading.Thread(target=self._analyze_and_download, args=(url,), daemon=True)
         analysis_thread.start()
 
@@ -400,12 +435,12 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.stop_flag.set()
         if self.current_download_process:
             self.current_download_process.terminate()
-            self.update_output("🛑 Download process terminated.")
+            self.update_output("🛑 Download process terminated.", msg_type="warning")
 
         if self.current_download_file and os.path.exists(self.current_download_file):
             try:
                 os.remove(self.current_download_file)
-                self.update_output(f"🗑️ Partially downloaded file deleted: {os.path.basename(self.current_download_file)}")
+                self.update_output(f"🗑️ Partially downloaded file deleted: {os.path.basename(self.current_download_file)}", msg_type="info")
             except Exception as e:
                 self.update_output(f"Error deleting partial file: {e}", msg_type="error")
 
@@ -428,7 +463,7 @@ class YouTubeDownloaderPro(ctk.CTk):
             playlist_title = url_info.get('title', 'Unknown Playlist').replace('/', '_').replace('\\', '_')
             playlist_folder = os.path.join(download_path, playlist_title)
             output_template = os.path.join(playlist_folder, "%(playlist_index)s - %(title)s.%(ext)s")
-            self.update_output(f"📁 Detected playlist: {playlist_title}")
+            self.update_output(f"📁 Detected playlist: {playlist_title}", msg_type="highlight")
             self.current_download_file = None
         else:
             output_template = os.path.join(download_path, "%(title)s.%(ext)s")
@@ -456,7 +491,7 @@ class YouTubeDownloaderPro(ctk.CTk):
 
         command.append(url)
 
-        self.update_output(f"🚀 Starting download ({download_type} - {resolution})...")
+        self.update_output(f"🚀 Starting download ({download_type} - {resolution})...", msg_type="highlight")
 
         try:
             self.current_download_process = subprocess.Popen(
@@ -477,7 +512,7 @@ class YouTubeDownloaderPro(ctk.CTk):
                 elif "has already been downloaded" in line:
                     self.update_output(line.strip(), msg_type="warning")
                 elif "Downloading video" in line:
-                    self.update_output(line.strip())
+                    self.update_output(line.strip(), msg_type="info")
 
                 percentage = 0.0
                 speed = "N/A"
