@@ -177,18 +177,28 @@
     <script>
         // Simulate download functionality
         document.getElementById('downloadBtn').addEventListener('click', function() {
+            const stopBtn = document.getElementById('stopBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            stopBtn.disabled = true;
+            clearBtn.disabled = true;
             const url = document.getElementById('url').value;
             if (!url) {
                 updateOutput("Please enter a YouTube URL.", "error");
                 return;
             }
             
-            // Disable button and change text
+            // Disable download button and change text
             const downloadBtn = document.getElementById('downloadBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const playBtn = document.getElementById('playBtn');
+
             downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Downloading...';
-            downloadBtn.classList.remove('from-[#00D9FF]', 'to-[#00FFD4]');
-            downloadBtn.classList.add('from-[#FFB800]', 'to-[#FFB800]');
+            downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
             downloadBtn.disabled = true;
+            stopBtn.disabled = false;
+            clearBtn.disabled = false;
+            playBtn.disabled = true;
             
             // Reset progress
             updateProgress(0, "0.00 MB/s");
@@ -215,12 +225,14 @@
                     clearInterval(interval);
                     updateOutput("Download completed successfully!", "success");
                     
-                    // Reset button
+                    // Reset buttons
                     setTimeout(() => {
                         downloadBtn.innerHTML = '<i class="fas fa-cloud-download-alt mr-2"></i> Download';
-                        downloadBtn.classList.add('from-[#00D9FF]', 'to-[#00FFD4]');
-                        downloadBtn.classList.remove('from-[#FFB800]', 'to-[#FFB800]');
+                        downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                         downloadBtn.disabled = false;
+                        stopBtn.disabled = true;
+                        clearBtn.disabled = false;
+                        playBtn.disabled = false; // Enable play button on successful download
                         
                         // Reset progress after a delay
                         setTimeout(() => {
@@ -235,6 +247,18 @@
         document.getElementById('browseBtn').addEventListener('click', function() {
             // In a real app, this would open a directory dialog
             updateOutput("Browse directory dialog would open here", "info");
+        });
+
+        // Stop button functionality
+        document.getElementById('stopBtn').addEventListener('click', function() {
+            updateOutput("Download stopped.", "info");
+            // Add actual stop logic here
+        });
+
+        // Clear button functionality
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            updateOutput("Output console cleared.", "info");
+            document.getElementById('outputConsole').innerHTML = ''; // Clear console
         });
         
         // Update progress bar and speed

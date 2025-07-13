@@ -8,6 +8,7 @@ import time
 import queue
 import shutil
 import json
+import platform
 
 class YouTubeDownloaderPro(ctk.CTk):
     def __init__(self):
@@ -20,6 +21,7 @@ class YouTubeDownloaderPro(ctk.CTk):
 
         self.current_download_process = None
         self.current_download_file = None
+        self.downloaded_file_path = None
         self.stop_flag = threading.Event()
 
         self.title("🎬 YouTube Downloader Pro")
@@ -44,8 +46,12 @@ class YouTubeDownloaderPro(ctk.CTk):
             "border_color": "#16213E",
             "download_active": "#00A8CC",
             "download_normal": "#00BFFF",
-            "stop_normal": "#2D60C3",
-            "stop_hover": "#4A7AD4",
+            "stop_normal": "#BF00FF",  # Neon purple
+            "stop_hover": "#E600FF",   # Lighter neon purple
+            "play_normal": "#00FF7F",  # Greenish neon
+            "play_hover": "#00E66F",   # Lighter greenish neon
+            "clear_normal": "#00FFFF", # Neon cyan
+            "clear_hover": "#00E6E6",  # Lighter neon cyan
             "console_info": "#FFFFFF",
             "console_success": "#00FF7F",
             "console_error": "#FF4444",
@@ -170,16 +176,25 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.download_button = ctk.CTkButton(
             buttons_frame, text="⬇️ Download", command=self.start_download,
             font=ctk.CTkFont(size=14, weight="bold"), height=40, corner_radius=10,
-            fg_color=self.colors["download_normal"], hover_color=self.colors["accent_hover"]
+            fg_color=self.colors["bg_secondary"], # Match parent background
+            border_width=2,
+            border_color=self.colors["accent"], # Neon blue/cyan
+            hover_color=self.colors["accent_hover"] # Keep existing hover for border effect
         )
-        self.download_button.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.download_button.pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         self.stop_button = ctk.CTkButton(
-            buttons_frame, text="⏹️", command=self.stop_download,
-            font=ctk.CTkFont(size=14, weight="bold"), height=40, width=50, corner_radius=10,
-            fg_color=self.colors["stop_normal"], hover_color=self.colors["stop_hover"], state="disabled"
+            buttons_frame, text="⏹️ Stop", command=self.stop_download,
+            font=ctk.CTkFont(size=14, weight="bold"), height=40, width=80, corner_radius=10, # Set a fixed width for stop button
+            fg_color=self.colors["bg_secondary"], # Match parent background
+            border_width=2,
+            border_color=self.colors["stop_normal"], # Neon purple
+            hover_color=self.colors["stop_hover"], # Lighter neon purple on hover
+            state="disabled"
         )
-        self.stop_button.pack(side="right")
+        self.stop_button.pack(side="right", padx=(4, 0)) # Remove fill="x", expand=True
+
+        
 
         progress_label = ctk.CTkLabel(progress_frame, text="📊 Progress:", font=ctk.CTkFont(size=13, weight="bold"))
         progress_label.pack(padx=15, pady=(15, 8), anchor="w")
@@ -228,12 +243,26 @@ class YouTubeDownloaderPro(ctk.CTk):
         )
         console_label.pack(side="left")
 
-        clear_button = ctk.CTkButton(
-            console_header_frame, text="🗑️ Clear", command=self.clear_console,
+        # Buttons for console actions
+        console_buttons_frame = ctk.CTkFrame(console_header_frame, fg_color="transparent")
+        console_buttons_frame.pack(side="right")
+
+        self.clear_button = ctk.CTkButton(
+            console_buttons_frame, text="🗑️ Clear", command=self.clear_console,
             font=ctk.CTkFont(size=11), height=25, width=60, corner_radius=6,
-            fg_color=self.colors["bg_primary"], hover_color=self.colors["accent"]
+            fg_color=self.colors["bg_primary"], hover_color=self.colors["bg_secondary"],
+            border_width=2, border_color=self.colors["clear_normal"]
         )
-        clear_button.pack(side="right")
+        self.clear_button.pack(side="left", padx=(0, 5))
+
+        self.play_button = ctk.CTkButton(
+            console_buttons_frame, text="▶️ Play", command=self.play_file,
+            font=ctk.CTkFont(size=11), height=25, width=60, corner_radius=6,
+            fg_color=self.colors["bg_primary"], hover_color=self.colors["bg_secondary"],
+            border_width=2, border_color=self.colors["play_normal"],
+            state="disabled" # Initially disabled
+        )
+        self.play_button.pack(side="right")
 
         console_frame = ctk.CTkFrame(content_frame, fg_color=self.colors["console_bg"], corner_radius=10)
         console_frame.grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 20), sticky="nsew")
@@ -294,6 +323,24 @@ class YouTubeDownloaderPro(ctk.CTk):
         if directory:
             self.path_entry.delete(0, ctk.END)
             self.path_entry.insert(0, directory)
+
+    def play_file(self):
+        if not self.downloaded_file_path or not os.path.exists(self.downloaded_file_path):
+            self.update_output("❌ No downloaded file found to play.", msg_type="error")
+            return
+
+        try:
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(self.downloaded_file_path)
+            elif system == "Darwin":  # macOS
+                subprocess.run(["open", self.downloaded_file_path])
+            else:  # Linux
+                subprocess.run(["xdg-open", self.downloaded_file_path])
+            
+            self.update_output(f"🎬 Opening file: {os.path.basename(self.downloaded_file_path)}", msg_type="success")
+        except Exception as e:
+            self.update_output(f"❌ Error opening file: {e}", msg_type="error")
 
     def update_output(self, message, msg_type="info"):
         self.output_text.configure(state="normal")
@@ -407,9 +454,11 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.download_button.configure(
             state="disabled",
             text="⏳ Downloading...",
-            fg_color=self.colors["download_active"]
+            fg_color=self.colors["bg_secondary"], # Match parent background
+            border_color=self.colors["download_active"]
         )
         self.stop_button.configure(state="normal")
+        self.play_button.configure(state="disabled")  # Disable play button during download
         self.update_progress(0)
         self.stop_flag.clear()
 
@@ -452,9 +501,50 @@ class YouTubeDownloaderPro(ctk.CTk):
         self.download_button.configure(
             state="normal",
             text="⬇️ Download",
-            fg_color=self.colors["download_normal"]
+            fg_color=self.colors["bg_secondary"], # Match parent background
+            border_color=self.colors["accent"], # Neon blue/cyan
+            border_width=2
         )
         self.stop_button.configure(state="disabled")
+
+    def _find_downloaded_file(self, download_path, video_title, is_audio=False):
+        """Find the downloaded file in the specified directory"""
+        try:
+            # Clean the title for filename matching
+            clean_title = re.sub(r'[<>:"/\\|?*]', '', video_title)
+            
+            # Common extensions based on download type
+            if is_audio:
+                extensions = ['.mp3', '.m4a', '.webm', '.ogg']
+            else:
+                extensions = ['.mp4', '.webm', '.mkv', '.avi']
+            
+            # Search for files in the download directory
+            for file in os.listdir(download_path):
+                file_path = os.path.join(download_path, file)
+                if os.path.isfile(file_path):
+                    # Check if the file matches the title pattern and has correct extension
+                    for ext in extensions:
+                        if file.endswith(ext) and clean_title.lower() in file.lower():
+                            return file_path
+            
+            # If exact match not found, try to find the most recent file with correct extension
+            recent_files = []
+            for file in os.listdir(download_path):
+                file_path = os.path.join(download_path, file)
+                if os.path.isfile(file_path):
+                    for ext in extensions:
+                        if file.endswith(ext):
+                            recent_files.append((file_path, os.path.getmtime(file_path)))
+            
+            if recent_files:
+                # Return the most recently modified file
+                return max(recent_files, key=lambda x: x[1])[0]
+                
+        except Exception as e:
+            self.update_output(f"Error finding downloaded file: {e}", msg_type="error")
+        
+        return None
 
     def _execute_download(self, url, download_type, resolution, download_path, url_type, url_info):
         command = [self.YTDLP_PATH, "--no-warnings", "--progress", "--newline", "--no-overwrites"]
@@ -503,6 +593,10 @@ class YouTubeDownloaderPro(ctk.CTk):
                 errors='replace'
             )
 
+            video_title = None
+            if url_type == 'video' and url_info:
+                video_title = url_info.get('title', 'Unknown')
+
             for line in self.current_download_process.stdout:
                 if self.stop_flag.is_set():
                     break
@@ -518,46 +612,140 @@ class YouTubeDownloaderPro(ctk.CTk):
                 speed = "N/A"
                 eta = "N/A"
 
-                if "[download]" in line:
+                if "[download]" in line and "%" in line:
+                    self.update_output(line.strip(), msg_type="progress")
+                    
+                    # Parse progress information
                     try:
-                        progress_match = re.search(r"(\d+\.\d*)%\s+of\s+.*?\s+at\s+([\d\.]+(?:K|M|G)?i?B/s)(?:\s+ETA\s+(.*))?", line)
-                        if progress_match:
-                            percentage = float(progress_match.group(1))
-                            speed = progress_match.group(2)
-                            eta = progress_match.group(3) if progress_match.group(3) else "N/A"
+                        # Extract percentage
+                        percent_match = re.search(r'(\d+(?:\.\d+)?)%', line)
+                        if percent_match:
+                            percentage = float(percent_match.group(1))
+                        
+                        # Extract speed
+                        speed_match = re.search(r'(\d+(?:\.\d+)?(?:K|M|G)?i?B/s)', line)
+                        if speed_match:
+                            speed = speed_match.group(1)
+                        
+                        # Extract ETA
+                        eta_match = re.search(r'ETA (\d+:\d+)', line)
+                        if eta_match:
+                            eta = eta_match.group(1)
+                        
+                        # Update progress in queue
+                        self.progress_queue.put({
+                            'percentage': percentage,
+                            'speed': speed,
+                            'eta': eta
+                        })
+                    except Exception as e:
+                        self.update_output(f"Error parsing progress: {e}", msg_type="error")
+                
+                elif "has already been downloaded" in line:
+                    self.update_output(line.strip(), msg_type="warning")
+                elif "Downloading video" in line or "Downloading playlist" in line:
+                    self.update_output(line.strip(), msg_type="info")
+                elif "ERROR" in line or "error" in line.lower():
+                    self.update_output(line.strip(), msg_type="error")
+                elif line.strip():
+                    self.update_output(line.strip(), msg_type="info")
 
-                            if "KiB/s" in speed:
-                                speed = speed.replace("KiB/s", " KB/s")
-                            elif "MiB/s" in speed:
-                                speed = speed.replace("MiB/s", " MB/s")
-                            elif "GiB/s" in speed:
-                                speed = speed.replace("GiB/s", " GB/s")
-
-                            self.progress_queue.put({'percentage': percentage, 'speed': speed, 'eta': eta})
-                    except (ValueError, IndexError, AttributeError):
-                        pass
-
+            # Wait for process to complete
             self.current_download_process.wait()
+            
+            # Check for errors
+            stderr_output = self.current_download_process.stderr.read()
+            if stderr_output:
+                self.update_output(f"Error output: {stderr_output}", msg_type="error")
 
-            if not self.stop_flag.is_set():
-                if self.current_download_process.returncode == 0:
-                    self.update_output("🎉 Download completed successfully!", msg_type="success")
-                    self.progress_queue.put({'percentage': 100, 'speed': "0.00 MB/s", 'eta': "Completed!"})
+            if self.current_download_process.returncode == 0 and not self.stop_flag.is_set():
+                self.update_output("✅ Download completed successfully!", msg_type="success")
+                self.progress_queue.put({'percentage': 100, 'speed': "0.00 MB/s", 'eta': "Complete"})
+                
+                # Try to find and set the downloaded file path
+                if url_type == 'video' and url_info:
+                    video_title = url_info.get('title', 'Unknown')
+                    is_audio = download_type == "audio"
+                    self.downloaded_file_path = self._find_downloaded_file(download_path, video_title, is_audio)
+                    
+                    if self.downloaded_file_path:
+                        self.update_output(f"📁 File saved: {os.path.basename(self.downloaded_file_path)}", msg_type="success")
+                        self.play_button.configure(state="normal")  # Enable play button
+                    else:
+                        self.update_output("⚠️ Download completed but file location could not be determined.", msg_type="warning")
                 else:
-                    stderr_output = self.current_download_process.stderr.read()
-                    self.update_output(f"Download failed with code {self.current_download_process.returncode}: {stderr_output}", msg_type="error")
+                    self.update_output("📁 Playlist download completed!", msg_type="success")
+                    
+            elif self.stop_flag.is_set():
+                self.update_output("🛑 Download cancelled by user.", msg_type="warning")
+            else:
+                self.update_output(f"❌ Download failed with return code: {self.current_download_process.returncode}", msg_type="error")
 
         except Exception as e:
-            self.update_output(f"An unexpected error occurred during download: {e}", msg_type="error")
-
+            self.update_output(f"❌ Download error: {e}", msg_type="error")
         finally:
-            self._reset_download_ui()
-            time.sleep(1)
-            self.progress_queue.put({'percentage': 0, 'speed': "0.00 MB/s", 'eta': "N/A"})
             self.current_download_process = None
             self.current_download_file = None
+            self._reset_download_ui()
+
+    def _find_downloaded_file(self, download_path, video_title, is_audio=False):
+        """Find the downloaded file in the specified directory"""
+        try:
+            # Clean the title for filename matching
+            clean_title = re.sub(r'[<>:"/\\|?*]', '', video_title)
+            
+            # Common extensions based on download type
+            if is_audio:
+                extensions = ['.mp3', '.m4a', '.webm', '.ogg']
+            else:
+                extensions = ['.mp4', '.webm', '.mkv', '.avi']
+            
+            # Search for files in the download directory
+            for file in os.listdir(download_path):
+                file_path = os.path.join(download_path, file)
+                if os.path.isfile(file_path):
+                    # Check if the file matches the title pattern and has correct extension
+                    for ext in extensions:
+                        if file.endswith(ext) and clean_title.lower() in file.lower():
+                            return file_path
+            
+            # If exact match not found, try to find the most recent file with correct extension
+            recent_files = []
+            for file in os.listdir(download_path):
+                file_path = os.path.join(download_path, file)
+                if os.path.isfile(file_path):
+                    for ext in extensions:
+                        if file.endswith(ext):
+                            recent_files.append((file_path, os.path.getmtime(file_path)))
+            
+            if recent_files:
+                # Return the most recently modified file
+                return max(recent_files, key=lambda x: x[1])[0]
+                
+        except Exception as e:
+            self.update_output(f"Error finding downloaded file: {e}", msg_type="error")
+        
+        return None
+
+    def play_file(self):
+        if not self.downloaded_file_path or not os.path.exists(self.downloaded_file_path):
+            self.update_output("❌ No downloaded file found to play.", msg_type="error")
+            return
+
+        try:
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(self.downloaded_file_path)
+            elif system == "Darwin":  # macOS
+                subprocess.run(["open", self.downloaded_file_path])
+            else:  # Linux
+                subprocess.run(["xdg-open", self.downloaded_file_path])
+            
+            self.update_output(f"🎬 Opening file: {os.path.basename(self.downloaded_file_path)}", msg_type="success")
+        except Exception as e:
+            self.update_output(f"❌ Error opening file: {e}", msg_type="error")
+
 
 if __name__ == "__main__":
     app = YouTubeDownloaderPro()
-    if app.YTDLP_PATH:
-        app.mainloop()
+    app.mainloop()
